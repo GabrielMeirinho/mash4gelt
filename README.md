@@ -1,18 +1,20 @@
 # Mash (Gelt Take Home)
 
-Front-end for a web version of the MASH game built with Vue 3 + TypeScript (Vite). The backend for usernames/saved choices will be added later; this repo focuses purely on the client.
+Front-end for a web version of the MASH game built with Vue 3 + TypeScript (Vite). 
+The backend for usernames/saved choices will be added later; this repo focuses purely on the client.
 
 ## What is being built
 - Interactive MASH experience: ask the usual life prompts, collect answers, and run the elimination loop.
-- Visible, slow-ish elimination steps to add suspense before revealing the final outcome.
-- Final results surfaced clearly to the player.
-- Rules can follow the classic approach or a small twist as long as the flow matches the expectations above.
+- Visible, slow-ish elimination steps to add suspense before revealing the final outcome. ( Maybe like these old games where the word brights up until stops for every loop? )
+- Final results surfaced clearly to the player. Maybe as a combination of the output object at the bottom or something like that.
+- Rules can follow the classic approach or a small twist as long as the flow matches the expectations above. ( maybe I will implement a twist where the player can press it and it loads ? Would be fun )
 
 ## Stack and structure
 - Vue 3 + TypeScript, Vite tooling.
 - Playwright for end-to-end tests.
 - ESLint, Prettier, and Oxlint for lint/format.
 - Source lives in `frontend/` to keep the client isolated from future backend work.
+- As Gelt projects are host as monorepo I will try to make a frontend folder here, and leave a backend empty without deployment. ( but it will leave a taste that BE could be implemented. )
 
 ## Getting started
 ```bash
@@ -47,10 +49,3 @@ npm run test:unit
 ## Notes for later backend work
 - Keep player identities and saved choice lists out of the client for now.
 - When ready, add a thin API layer for saving/replaying games; avoid coupling UI state to storage format.
-
-## Follow-up talking points
-1) Nice-to-haves: richer prompts, shareable results, accessibility polish, sound/animation cues, theming.  
-2) AI ideas: generate personalized prompts/endings, suggest funny options, adapt pacing to the player.  
-3) Infra for AI: prompt service, model hosting (or API), guardrails, caching, observability.  
-4) Safety: moderation on inputs/outputs, prompt constraints, evaluation checks, clear opt-in.  
-5) Saving results: user auth or device storage, a simple history endpoint, and a replay view.
