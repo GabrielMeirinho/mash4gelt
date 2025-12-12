@@ -1,1 +1,89 @@
 @import './base.css';
+
+:root {
+  --bg: #ffffff;
+  --fg: #111111;
+  --accent: #111111;
+  --muted: #3f3f46;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Comic Sans MS", "Comic Sans", "Marker Felt", system-ui, sans-serif;
+}
+
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.5rem, 6vw, 3rem) clamp(1rem, 4vw, 1.5rem);
+  position: relative;
+  z-index: 1; /* sit above the wallpaper layer */
+}
+
+.hero {
+  text-align: center;
+  display: grid;
+  gap: 1rem;
+}
+
+.title {
+  display: inline-flex;
+  gap: clamp(0.75rem, 5vw, 2.2rem);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(48px, 10vw, 86px);
+  height: clamp(48px, 10vw, 86px);
+  font-size: clamp(2.6rem, 8vw, 4.4rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--fg);
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  transform-origin: center;
+}
+
+/* Slight tilt per letter to keep the header feeling hand-drawn */
+.title .chip:nth-child(1) {
+  transform: rotate(-3deg) translateY(2px);
+}
+
+.title .chip:nth-child(2) {
+  transform: rotate(2deg) translateY(-2px);
+}
+
+.title .chip:nth-child(3) {
+  transform: rotate(-1deg) translateY(1px);
+}
+
+.title .chip:nth-child(4) {
+  transform: rotate(2deg) translateY(-1px);
+}
+
+.tagline {
+  color: var(--muted);
+  margin: 0;
+}
+
+.start {
+  justify-self: center;
+  padding: clamp(0.7rem, 2vw, 0.9rem) clamp(1.1rem, 3vw, 1.8rem);
+  border-radius: 999px;
+  border: 2px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+}
