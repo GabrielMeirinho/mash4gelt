@@ -11,6 +11,8 @@ import {
   LABEL_START,
   LABEL_RESULTS_ACTION,
   LABEL_RESULTS_TITLE,
+  DRUM_ROLL_URL,
+  CHEER_URL,
   MASH_OPTIONS,
   LETTERS,
   LETTER_INTERVAL_MS,
@@ -41,7 +43,12 @@ const activeCategoryKey = ref<string | null>(null)
 const activeOptionIndex = ref<number | null>(null)
 const showResultsModal = ref(false)
 const resultsData = ref<Array<{ category: string; choice: string }>>([])
+const showStepOverlay = ref(false)
+const stepOverlayValue = ref<number | null>(null)
+const lastStep = ref<number | null>(null)
 let resultsModalTimeout: number | null = null
+const drumRollAudio = new Audio(DRUM_ROLL_URL.href)
+const cheerAudio = new Audio(CHEER_URL.href)
 const makeChosenMap = () => {
   const base: Record<string, number | null> = { mash: null }
   defaultCategories.forEach((cat) => {
@@ -73,6 +80,7 @@ const stopLetterCycle = () => {
 }
 
 const entrySound = createLoopingAudio(ENTRY_SOUND_URL.href, 0.35)
+const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 
 let audioUnlockCleanup: CleanupFn | null = null
 const musicEnabled = ref(false)
@@ -122,6 +130,52 @@ const toggleMusic = () => {
   }
 }
 
+const playDrumRollClip = async (maxDurationMs = 4500) =>
+  new Promise<void>((resolve) => {
+    // ensure clean start
+    drumRollAudio.pause()
+    drumRollAudio.currentTime = 0
+    drumRollAudio.volume = 0.8
+    drumRollAudio.muted = false
+    drumRollAudio.playbackRate = 1
+
+    let finished = false
+    const finish = () => {
+      if (finished) return
+      finished = true
+      drumRollAudio.onended = null
+      drumRollAudio.onerror = null
+      resolve()
+    }
+    const timer = window.setTimeout(finish, maxDurationMs)
+    drumRollAudio.onended = () => {
+      window.clearTimeout(timer)
+      finish()
+    }
+    drumRollAudio.onerror = () => {
+      window.clearTimeout(timer)
+      finish()
+    }
+    void drumRollAudio.play().catch(() => {
+      window.clearTimeout(timer)
+      finish()
+    })
+  })
+
+const revealStepOverlay = async (step: number) => {
+  await playDrumRollClip()
+  // play cheer while showing the number
+  cheerAudio.pause()
+  cheerAudio.currentTime = 0
+  cheerAudio.volume = 0.85
+  void cheerAudio.play().catch(() => {})
+  stepOverlayValue.value = step
+  showStepOverlay.value = true
+  await sleep(3000)
+  showStepOverlay.value = false
+  cheerAudio.pause()
+}
+
 
 const allFilled = computed(() =>
   categories.value.every((cat) => cat.options.every((opt) => opt.trim().length > 0))
@@ -138,6 +192,7 @@ const isEliminated = (key: string, idx: number) => eliminated.value[key]?.has(id
 const spinWheel = async () => {
   if (!allFilled.value || hasSpun.value || isSpinning.value) return
   isSpinning.value = true
+  await sleep(1000)
   activeMashIterIndex.value = -1
   activeCategoryKey.value = null
   activeOptionIndex.value = null
@@ -152,7 +207,18 @@ const spinWheel = async () => {
     resultsModalTimeout = null
   }
 
-  const step = Math.floor(Math.random() * 5) + 5 // 5..9 inclusive
+  const pickStep = () => {
+    const pool = [5, 6, 7, 8, 9].filter((n) => n !== lastStep.value)
+    if (!pool.length) {
+      return Math.floor(Math.random() * 5) + 5
+    }
+    const idx = Math.floor(Math.random() * pool.length)
+    return pool[idx]!
+  }
+
+  const step = pickStep()
+  lastStep.value = step
+  await revealStepOverlay(step)
 
   const working = [
     { key: 'mash', options: [...MASH_OPTIONS] },
@@ -197,7 +263,7 @@ const spinWheel = async () => {
     activeOptionIndex.value = working[ci]?.key === 'mash' ? null : oi
 
     // step highlight delay
-    await wait(50)
+    await wait(400)
 
     const catRemaining = remainingCounts[ci] ?? 0
     if (!removed[ci]?.[oi] && catRemaining > 1) {
@@ -267,6 +333,8 @@ onBeforeUnmount(() => {
   stopLetterCycle()
   stopEntrySound()
   detachAudioUnlock()
+  drumRollAudio.pause()
+  cheerAudio.pause()
 })
 
 const restartGame = () => {
@@ -280,6 +348,10 @@ const restartGame = () => {
   mashEliminated.value = new Set()
   resultsData.value = []
   showResultsModal.value = false
+  showStepOverlay.value = false
+  stepOverlayValue.value = null
+  drumRollAudio.pause()
+  drumRollAudio.currentTime = 0
   if (resultsModalTimeout !== null) {
     window.clearTimeout(resultsModalTimeout)
     resultsModalTimeout = null
@@ -408,6 +480,14 @@ const restartGame = () => {
           </div>
         </form>
       </section>
+    </Transition>
+
+    <Transition name="fade">
+      <div v-if="showStepOverlay && stepOverlayValue !== null" class="step-overlay" aria-live="polite">
+        <div class="step-overlay__bubble">
+          {{ stepOverlayValue }}
+        </div>
+      </div>
     </Transition>
 
     <Transition name="fade">

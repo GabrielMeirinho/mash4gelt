@@ -14,7 +14,7 @@ export const categoryIcons: Record<string, string> = {
   city: '🏙️',
   salary: '💰',
   children: '👶',
-  car: '🚗'
+  vehicle: '🚗'
 }
 
 // Default options shown on first load.
@@ -24,11 +24,15 @@ export const defaultCategories = [
   { key: 'city', label: 'City', options: ['Paris', 'London', 'New York', 'Duddley'] },
   { key: 'salary', label: 'Salary/year', options: ['£100.000', '£50.000', '£10.000', '£0.1'] },
   { key: 'children', label: 'Children', options: ['3', '2', '1', '15'] },
-  { key: 'car', label: 'Car', options: ['Volvo', 'Tesla', 'Ferrari', 'Bike'] }
+  { key: 'vehicle', label: 'Vehicle', options: ['Volvo', 'Tesla', 'Ferrari', 'Bike'] }
 ] as const
 
 // Entry music track (bundled wav) that loops during the intro.
 export const ENTRY_SOUND_URL = new URL('./sounds/beep_box_entry.wav', import.meta.url)
+// Drum roll clip for the spin suspense.
+export const DRUM_ROLL_URL = new URL('./sounds/drum_roll_trimmed.mp3', import.meta.url)
+// Cheer clip to celebrate the step reveal.
+export const CHEER_URL = new URL('./sounds/short_crowd_cheer.mp3', import.meta.url)
 
 // UI copy
 export const LABEL_MUSIC_ON = '🔊 Music on'
