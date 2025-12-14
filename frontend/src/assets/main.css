@@ -22,6 +22,29 @@ body {
   z-index: 1; /* sit above the wallpaper layer */
 }
 
+.music-toggle {
+  position: absolute;
+  top: clamp(0.8rem, 3vw, 1.4rem);
+  right: clamp(0.8rem, 3vw, 1.4rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.music-toggle__hint {
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
 .hero {
   text-align: center;
   display: grid;
@@ -33,7 +56,20 @@ body {
   gap: clamp(0.75rem, 5vw, 2.2rem);
 }
 
+.form-title {
+  display: grid;
+  place-items: center;
+  margin-bottom: 2rem;
+}
+
+.form-title .chip {
+  opacity: 1;
+  color: #111;
+}
+
 .chip {
+  --chip-tilt: 0deg;
+  --chip-shift: 0px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -43,34 +79,59 @@ body {
   font-weight: 800;
   letter-spacing: 0.08em;
   color: var(--fg);
+  border-radius: 18px;
   border: none;
   background: transparent;
   box-shadow: none;
   transform-origin: center;
-  /* Layered shadows to fake a crayon texture */
+  transform: rotate(var(--chip-tilt)) translateY(var(--chip-shift));
+  opacity: 0.45;
+  transition:
+    transform 200ms ease,
+    opacity 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease;
+  text-shadow: none;
+  mix-blend-mode: normal;
+}
+
+.chip--active {
+  opacity: 1;
+  color: #111111;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  -webkit-text-stroke: 2px #ffd166;
   text-shadow:
-    0.5px 0.5px 0 rgba(0, 0, 0, 0.08),
-    -0.5px 0.6px 0 rgba(0, 0, 0, 0.08),
-    0.7px -0.2px 0 rgba(0, 0, 0, 0.06),
-    -0.6px -0.4px 0 rgba(0, 0, 0, 0.06);
-  mix-blend-mode: multiply;
+    0 0 10px rgba(255, 193, 7, 0.6),
+    0 0 18px rgba(255, 193, 7, 0.8);
+  transform: rotate(var(--chip-tilt)) translateY(var(--chip-shift)) scale(1.08);
 }
 
 /* Slight tilt per letter to keep the header feeling hand-drawn */
 .title .chip:nth-child(1) {
-  transform: rotate(-3deg) translateY(2px);
+  --chip-tilt: -3deg;
+  --chip-shift: 2px;
 }
 
 .title .chip:nth-child(2) {
-  transform: rotate(3deg) translateY(-2px);
+  --chip-tilt: 3deg;
+  --chip-shift: -2px;
 }
 
 .title .chip:nth-child(3) {
-  transform: rotate(-2deg) translateY(3px);
+  --chip-tilt: -2deg;
+  --chip-shift: 3px;
 }
 
 .title .chip:nth-child(4) {
-  transform: rotate(2deg);
+  --chip-tilt: 2deg;
+}
+
+.chip--inline {
+  --chip-tilt: 0deg;
+  --chip-shift: 0px;
 }
 
 .tagline {
@@ -80,14 +141,14 @@ body {
 
 .start {
   justify-self: center;
-  padding: clamp(0.7rem, 2vw, 0.9rem) clamp(1.1rem, 3vw, 1.8rem);
+  padding: clamp(0.7rem, 2vw, 0.9rem) clamp(2.1rem, 3vw, 1.8rem);
   border-radius: 999px;
   border: 2px solid var(--accent);
   background: transparent;
   color: var(--accent);
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 1s ease, box-shadow 0.15s ease;
 }
 
 .start:hover {
@@ -138,6 +199,27 @@ body {
 
 .ghost-button:active {
   transform: translateY(0);
+}
+
+.ghost-button--primary {
+  margin-left: 0.5rem;
+  border-color: #111;
+  color: #111;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ghost-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.spiral-icon {
+  width: 32px;
+  height: 32px;
 }
 
 .prompt-grid {
@@ -235,4 +317,22 @@ body {
 .grow-leave-to {
   opacity: 0;
   transform: translateY(8px) scale(0.98);
+}
+
+.title-fade-leave-active {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.title-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+.title-slide-enter-active {
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.title-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-18px);
 }
