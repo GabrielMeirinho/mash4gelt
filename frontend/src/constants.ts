@@ -33,6 +33,8 @@ export const ENTRY_SOUND_URL = new URL('./sounds/beep_box_entry.wav', import.met
 export const DRUM_ROLL_URL = new URL('./sounds/drum_roll_trimmed.mp3', import.meta.url)
 // Cheer clip to celebrate the step reveal.
 export const CHEER_URL = new URL('./sounds/short_crowd_cheer.mp3', import.meta.url)
+// 8-bit loop that plays during the elimination round.
+export const LOOP_MUSIC_URL = new URL('./sounds/8bit_music.mp3', import.meta.url)
 
 // UI copy
 export const LABEL_MUSIC_ON = '🔊 Music on'

@@ -13,6 +13,7 @@ import {
   LABEL_RESULTS_TITLE,
   DRUM_ROLL_URL,
   CHEER_URL,
+  LOOP_MUSIC_URL,
   MASH_OPTIONS,
   LETTERS,
   LETTER_INTERVAL_MS,
@@ -46,9 +47,13 @@ const resultsData = ref<Array<{ category: string; choice: string }>>([])
 const showStepOverlay = ref(false)
 const stepOverlayValue = ref<number | null>(null)
 const lastStep = ref<number | null>(null)
+const flashRemoval = ref<{ key: string; idx: number } | null>(null)
 let resultsModalTimeout: number | null = null
 const drumRollAudio = new Audio(DRUM_ROLL_URL.href)
 const cheerAudio = new Audio(CHEER_URL.href)
+const loopMusicAudio = new Audio(LOOP_MUSIC_URL.href)
+loopMusicAudio.loop = true
+loopMusicAudio.volume = 0.6
 const makeChosenMap = () => {
   const base: Record<string, number | null> = { mash: null }
   defaultCategories.forEach((cat) => {
@@ -176,6 +181,24 @@ const revealStepOverlay = async (step: number) => {
   cheerAudio.pause()
 }
 
+const startLoopMusic = async () => {
+  loopMusicAudio.pause()
+  loopMusicAudio.currentTime = 0
+  loopMusicAudio.volume = 0.6
+  loopMusicAudio.muted = false
+  loopMusicAudio.playbackRate = 1
+  try {
+    await loopMusicAudio.play()
+  } catch {
+    console.log("auto play issues detected!")
+  }
+}
+
+const stopLoopMusic = () => {
+  loopMusicAudio.pause()
+  loopMusicAudio.currentTime = 0
+}
+
 
 const allFilled = computed(() =>
   categories.value.every((cat) => cat.options.every((opt) => opt.trim().length > 0))
@@ -193,6 +216,10 @@ const spinWheel = async () => {
   if (!allFilled.value || hasSpun.value || isSpinning.value) return
   isSpinning.value = true
   await sleep(1000)
+  if (musicEnabled.value) {
+    musicEnabled.value = false
+    stopEntrySound()
+  }
   activeMashIterIndex.value = -1
   activeCategoryKey.value = null
   activeOptionIndex.value = null
@@ -219,6 +246,8 @@ const spinWheel = async () => {
   const step = pickStep()
   lastStep.value = step
   await revealStepOverlay(step)
+  await startLoopMusic()
+  await sleep(2000)
 
   const working = [
     { key: 'mash', options: [...MASH_OPTIONS] },
@@ -262,8 +291,8 @@ const spinWheel = async () => {
     activeCategoryKey.value = working[ci]?.key ?? null
     activeOptionIndex.value = working[ci]?.key === 'mash' ? null : oi
 
-    // step highlight delay
-    await wait(400)
+    // step highlight delay, I will leave like this, otherwise it will be TOOOO slow. Also I can change this while debug to make it fast during tests
+    await wait(100)
 
     const catRemaining = remainingCounts[ci] ?? 0
     if (!removed[ci]?.[oi] && catRemaining > 1) {
@@ -276,6 +305,11 @@ const spinWheel = async () => {
             eliminated.value[catKey].add(oi)
           } else if (catKey === 'mash') {
             mashEliminated.value = new Set([...mashEliminated.value, oi])
+          }
+          if (catKey) {
+            flashRemoval.value = { key: catKey, idx: oi }
+            await wait(1400)
+            flashRemoval.value = null
           }
         }
         remainingCounts[ci] = Math.max(0, catRemaining - 1)
@@ -299,7 +333,12 @@ const spinWheel = async () => {
   activeCategoryKey.value = null
   activeOptionIndex.value = null
   isSpinning.value = false
+  stopLoopMusic()
   resultsModalTimeout = window.setTimeout(() => {
+    cheerAudio.pause()
+    cheerAudio.currentTime = 0
+    cheerAudio.volume = 0.85
+    void cheerAudio.play().catch(() => {})
     showResultsModal.value = true
     resultsModalTimeout = null
   }, 2000)
@@ -335,8 +374,10 @@ onBeforeUnmount(() => {
   detachAudioUnlock()
   drumRollAudio.pause()
   cheerAudio.pause()
+  stopLoopMusic()
 })
 
+// restaring every value we need to have the game fresh again
 const restartGame = () => {
   hasSpun.value = false
   isSpinning.value = false
@@ -352,6 +393,9 @@ const restartGame = () => {
   stepOverlayValue.value = null
   drumRollAudio.pause()
   drumRollAudio.currentTime = 0
+  cheerAudio.pause()
+  cheerAudio.currentTime = 0
+  stopLoopMusic()
   if (resultsModalTimeout !== null) {
     window.clearTimeout(resultsModalTimeout)
     resultsModalTimeout = null
@@ -363,6 +407,7 @@ const restartGame = () => {
   <WallpaperLayer />
   <main class="page">
     <button
+      v-if="!isSpinning"
       class="music-toggle"
       type="button"
       :aria-pressed="musicEnabled"
@@ -378,14 +423,15 @@ const restartGame = () => {
           <span
             v-for="(letter, idx) in LETTERS"
             :key="letter"
-            class="chip"
-            :class="{
-              'chip--active': idx === activeLetterIndex,
-              'chip--chosen': chosenIndices.mash === idx,
-              'chip--eliminated': mashEliminated.has(idx) && chosenIndices.mash !== idx
-            }"
-            :data-testid="`chip-${letter}`"
-          >
+                class="chip"
+                :class="{
+                  'chip--active': idx === activeLetterIndex,
+                  'chip--chosen': chosenIndices.mash === idx,
+                  'chip--eliminated': mashEliminated.has(idx) && chosenIndices.mash !== idx,
+                  'chip--flash': flashRemoval?.key === 'mash' && flashRemoval?.idx === idx
+                }"
+                :data-testid="`chip-${letter}`"
+              >
             {{ letter }}
           </span>
         </div>
@@ -416,7 +462,8 @@ const restartGame = () => {
                 :class="{
                   'chip--active': activeCategoryKey === 'mash' && activeMashIterIndex === LETTERS.indexOf(letter),
                   'chip--eliminated': mashEliminated.has(LETTERS.indexOf(letter)) && chosenIndices.mash !== LETTERS.indexOf(letter),
-                  'chip--chosen': chosenIndices.mash === LETTERS.indexOf(letter)
+                  'chip--chosen': chosenIndices.mash === LETTERS.indexOf(letter),
+                  'chip--flash': flashRemoval?.key === 'mash' && flashRemoval?.idx === LETTERS.indexOf(letter)
                 }"
                 :data-testid="`chip-inline-${letter}`"
               >
@@ -463,7 +510,8 @@ const restartGame = () => {
                 :class="{
                   'prompt__row--eliminated': isEliminated(cat.key, idx),
                   'prompt__row--active': activeCategoryKey === cat.key && activeOptionIndex === idx,
-                  'prompt__row--chosen': chosenIndices[cat.key] === idx
+                  'prompt__row--chosen': chosenIndices[cat.key] === idx,
+                  'prompt__row--flash': flashRemoval?.key === cat.key && flashRemoval?.idx === idx
                 }"
               >
                 <span class="prompt__dot" aria-hidden="true">•</span>

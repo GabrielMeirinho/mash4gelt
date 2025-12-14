@@ -325,6 +325,10 @@ body {
   justify-self: start;
 }
 
+.prompt__row--flash {
+  animation: flash-removal 1200ms ease-in-out 1;
+}
+
 .chip--chosen {
   text-decoration: none;
   border: 4px solid rgba(239, 68, 68, 0.5);
@@ -334,6 +338,18 @@ body {
   border-radius: 26px;
   background: #fff;
   padding: 6px 8px;
+}
+
+@keyframes flash-removal {
+  0% { filter: brightness(1); }
+  25% { filter: brightness(1.5); }
+  50% { filter: brightness(1); }
+  75% { filter: brightness(1.5); }
+  100% { filter: brightness(1); }
+}
+
+.chip--flash {
+  animation: flash-removal 1200ms ease-in-out 1;
 }
 
 .results-overlay {
