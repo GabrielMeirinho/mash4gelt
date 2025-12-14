@@ -8,6 +8,7 @@ export const LETTER_INTERVAL_MS = 500
 
 // Emoji-esque icons for each category in the form.
 export const categoryIcons: Record<string, string> = {
+  mash: '??',
   partner: '❤️',
   career: '📂',
   city: '🏙️',
@@ -36,3 +37,21 @@ export const LABEL_START = 'Start'
 export const LABEL_FORM_LEAD = 'Choose your options before we spin the wheel of fate.'
 export const LABEL_CLEAR = 'Clear'
 export const LABEL_SPIN_PLACEHOLDER = 'Spin wheel (coming soon)'
+
+// Static MASH housing options (not user-editable).
+export const MASH_OPTIONS = ['Mansion', 'Apartment', 'Shack', 'House'] as const
+
+// Wallpaper assets and grid layout for the crayon background.
+export const WALLPAPER_ASSETS: string[] = [
+  new URL('@/images/crayon_h.png', import.meta.url).href,
+  new URL('@/images/crayon_m.png', import.meta.url).href,
+  new URL('@/images/crayon_s.png', import.meta.url).href,
+  new URL('@/images/crayon_d.png', import.meta.url).href,
+  new URL('@/images/crayon_f.png', import.meta.url).href,
+  new URL('@/images/crayon_sun.png', import.meta.url).href
+]
+
+// Some grid values to add the drawing minuatures.
+export const WALLPAPER_GRID_ROWS = 9
+export const WALLPAPER_GRID_COLS = 13
+

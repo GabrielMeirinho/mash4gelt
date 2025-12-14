@@ -7,6 +7,7 @@ export const createLoopingAudio = (src: string, volume = 0.35) => {
   const audio = new Audio(src)
   audio.volume = volume
   audio.loop = true
+  audio.playbackRate = 0.8
   return audio
 }
 

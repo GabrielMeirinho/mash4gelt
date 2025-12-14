@@ -1,4 +1,7 @@
 <script setup lang="ts">
+
+import { WALLPAPER_ASSETS, WALLPAPER_GRID_COLS, WALLPAPER_GRID_ROWS } from '../constants'
+
 // create this object to have a randomizer location for each stamp ( own rotation and localization )
 type Stamp = {
   id: number
@@ -10,30 +13,17 @@ type Stamp = {
   opacity: number
 }
 
-// getting the images to randomly put them at the page
-const assets: string[] = [
-  new URL('@/images/crayon_h.png', import.meta.url).href,
-  new URL('@/images/crayon_m.png', import.meta.url).href,
-  new URL('@/images/crayon_s.png', import.meta.url).href,
-  new URL('@/images/crayon_d.png', import.meta.url).href,
-  new URL('@/images/crayon_f.png', import.meta.url).href,
-  new URL('@/images/crayon_sun.png', import.meta.url).href
-]
-
-const GRID_ROWS = 9
-const GRID_COLS = 8
-
 // Distribute stamps across a grid with small jitter to reduce overlap
-const stamps: Stamp[] = Array.from({ length: GRID_ROWS * GRID_COLS }, (_, idx) => {
+const stamps: Stamp[] = Array.from({ length: WALLPAPER_GRID_ROWS * WALLPAPER_GRID_COLS }, (_, idx) => {
   //get the asses and randomize their input
-  const assetIndex = Math.floor(Math.random() * assets.length) % assets.length
-  const src = assets[assetIndex] ?? assets[0]!
-  const row = Math.floor(idx / GRID_COLS)
-  const col = idx % GRID_COLS
+  const assetIndex = Math.floor(Math.random() * WALLPAPER_ASSETS.length) % WALLPAPER_ASSETS.length
+  const src = WALLPAPER_ASSETS[assetIndex] ?? WALLPAPER_ASSETS[0]!
+  const row = Math.floor(idx / WALLPAPER_GRID_COLS)
+  const col = idx % WALLPAPER_GRID_COLS
 
   // adjusting some space for this background ( I want to have these images at the back seprated.)
-  const cellHeight = 120 / GRID_ROWS
-  const cellWidth = 110 / GRID_COLS
+  const cellHeight = 120 / WALLPAPER_GRID_ROWS
+  const cellWidth = 110 / WALLPAPER_GRID_COLS
 
   const jitterY = (Math.random() - 0.5) * (cellHeight * 0.4)
   const jitterX = (Math.random() - 0.5) * (cellWidth * 0.4)
@@ -48,7 +38,7 @@ const stamps: Stamp[] = Array.from({ length: GRID_ROWS * GRID_COLS }, (_, idx) =
   const rotate = 50 + Math.random() * 150
 
   // 70% visible at ~12% opacity, 30% fully invisible to keep spacing airy
-  const isVisible = Math.random() < 0.70
+  const isVisible = Math.random() < 0.80
   const opacity = isVisible ? 0.12 : 0
 
   // One nice thing I did check is for each deploy there is a different combination of these ( My randomizer input lets the wallpaper to be dynamic )

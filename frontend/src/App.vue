@@ -9,6 +9,7 @@ import {
   LABEL_MUSIC_ON,
   LABEL_SPIN_PLACEHOLDER,
   LABEL_START,
+  MASH_OPTIONS,
   LETTERS,
   LETTER_INTERVAL_MS,
   categoryIcons,
@@ -16,7 +17,9 @@ import {
 } from './constants'
 import {
   attachAudioUnlock,
-  createLoopingAudio,stopAudio,
+  createLoopingAudio,
+  playAudio,
+  stopAudio,
   type CleanupFn
 } from './utils/sound_utils'
 
@@ -29,6 +32,7 @@ type Category = {
 const started = ref(false)
 const activeLetterIndex = ref(-1)
 let letterIntervalId: number | null = null
+const hasSpun = ref(false)
 
 // Kick off the marquee animation loop for the intro letters.
 const startLetterCycle = () => {
@@ -57,11 +61,15 @@ const categories = ref<Category[]>(defaultCategories.map((cat) => ({ ...cat, opt
 // Start the intro music; if autoplay is blocked the unlock handler will retry.
 const startEntrySound = async () => {
   if (!musicEnabled.value) return
+  const played = await playAudio(entrySound, musicEnabled.value)
+  if (!played) {
+    attachUnlock()
   }
+}
 
 const stopEntrySound = () => {
   stopAudio(entrySound)
-  }
+}
 
 // Attach first-gesture listeners to satisfy autoplay policies.
 const attachUnlock = () => {
@@ -96,6 +104,58 @@ const allFilled = computed(() =>
 // Flip into the main experience; stop intro effects.
 const start = async () => {
   started.value = true
+}
+
+// Spin the wheel: pick a number between 5 and 9 and log it.
+const spinWheel = () => {
+  if (!allFilled.value || hasSpun.value) return
+  const step = Math.floor(Math.random() * 5) + 5 // 5..9 inclusive
+
+  const working = [
+    { key: 'mash', options: [...MASH_OPTIONS] },
+    ...categories.value.map((cat) => ({
+    key: cat.key,
+    options: [...cat.options]
+  }))
+  ]
+
+  const removed: boolean[][] = working.map((cat) => cat.options.map(() => false))
+  const remainingCounts = working.map((cat) => cat.options.length)
+  const flat: Array<{ ci: number; oi: number }> = working.flatMap((cat, ci) =>
+    cat.options.map((_, oi) => ({ ci, oi }))
+  )
+  if (!flat.length) return
+
+  const canRemove = () => remainingCounts.some((count) => count > 1)
+  let idx = 0
+  let counter = 0
+  let safety = 0
+  const maxIterations = flat.length * 1000
+
+  while (canRemove() && safety < maxIterations) {
+    const { ci, oi } = flat[idx]!
+    const catRemaining = remainingCounts[ci] ?? 0
+    if (!removed[ci]?.[oi] && catRemaining > 1) {
+      counter += 1
+      if (counter === step) {
+        if (removed[ci]) {
+          removed[ci][oi] = true
+        }
+        remainingCounts[ci] = Math.max(0, catRemaining - 1)
+        counter = 0
+      }
+    }
+    idx = (idx + 1) % flat.length
+    safety += 1
+  }
+
+  const results = working.map((cat, ci) => {
+    const remainingIdx = cat.options.findIndex((_, oi) => !removed[ci]?.[oi])
+    return { category: cat.key, choice: cat.options[remainingIdx] ?? '' }
+  })
+
+  console.log(`Spin result (step=${step}):`, results)
+  hasSpun.value = true
 }
 
 // Reset all user-entered options back to blanks.
@@ -190,13 +250,18 @@ onBeforeUnmount(() => {
           <button class="ghost-button" type="button" @click="clearOptions">
             {{ LABEL_CLEAR }}
           </button>
-          <button class="ghost-button ghost-button--primary" type="button" :disabled="!allFilled">
+          <button
+            class="ghost-button ghost-button--primary"
+            type="button"
+            :disabled="!allFilled || hasSpun"
+            @click="spinWheel"
+          >
             {{ LABEL_SPIN_PLACEHOLDER }}
           </button>
         </div>
         <form class="prompt-grid">
           <div v-for="cat in categories" :key="cat.key" class="prompt">
-            <label class="prompt__label" :for="cat.key">
+            <label class="prompt__label" :for="`${cat.key}-0`">
               <span class="prompt__icon" aria-hidden="true">{{ categoryIcons[cat.key] ?? '✏️' }}</span>
               {{ cat.label }}
             </label>
@@ -218,5 +283,3 @@ onBeforeUnmount(() => {
     </Transition>
   </main>
 </template>
-
-
