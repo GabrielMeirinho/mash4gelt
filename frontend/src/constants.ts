@@ -22,7 +22,7 @@ export const defaultCategories = [
   { key: 'partner', label: 'Partner', options: ['Jannet', 'Michael', 'Steve', 'Jeff (Hi, I am Jeff!)'] },
   { key: 'career', label: 'Career', options: ['Scientist', 'Rock Star', 'Doctor', 'Poop Cleaner'] },
   { key: 'city', label: 'City', options: ['Paris', 'London', 'New York', 'Duddley'] },
-  { key: 'salary', label: 'Salary', options: ['50000', '25000', '1000', '0.1'] },
+  { key: 'salary', label: 'Salary/year', options: ['£100.000', '£50.000', '£10.000', '£0.1'] },
   { key: 'children', label: 'Children', options: ['3', '2', '1', '15'] },
   { key: 'car', label: 'Car', options: ['Volvo', 'Tesla', 'Ferrari', 'Bike'] }
 ] as const
@@ -36,7 +36,9 @@ export const LABEL_MUSIC_OFF = '🔇 Music off'
 export const LABEL_START = 'Start'
 export const LABEL_FORM_LEAD = 'Choose your options before we spin the wheel of fate.'
 export const LABEL_CLEAR = 'Clear'
-export const LABEL_SPIN_PLACEHOLDER = 'Spin wheel (coming soon)'
+export const LABEL_SPIN_PLACEHOLDER = 'Spin wheel of luck!'
+export const LABEL_RESULTS_TITLE = 'Your MASH fate'
+export const LABEL_RESULTS_ACTION = 'Start again'
 
 // Static MASH housing options (not user-editable).
 export const MASH_OPTIONS = ['Mansion', 'Apartment', 'Shack', 'House'] as const
@@ -54,4 +56,3 @@ export const WALLPAPER_ASSETS: string[] = [
 // Some grid values to add the drawing minuatures.
 export const WALLPAPER_GRID_ROWS = 9
 export const WALLPAPER_GRID_COLS = 13
-

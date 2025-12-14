@@ -49,7 +49,7 @@ test('form text matches constants and spin placeholder shows', async ({ page }) 
   await page.goto('/');
   await page.getByRole('button', { name: 'Start' }).click();
   await expect(page.getByText('Choose your options before we spin the wheel of fate.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Spin wheel (coming soon)' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Spin wheel of luck!' })).toBeVisible();
 });
 
 // Check the hero header disappears after Start and inline title appears.

@@ -9,6 +9,8 @@ import {
   LABEL_MUSIC_ON,
   LABEL_SPIN_PLACEHOLDER,
   LABEL_START,
+  LABEL_RESULTS_ACTION,
+  LABEL_RESULTS_TITLE,
   MASH_OPTIONS,
   LETTERS,
   LETTER_INTERVAL_MS,
@@ -33,6 +35,24 @@ const started = ref(false)
 const activeLetterIndex = ref(-1)
 let letterIntervalId: number | null = null
 const hasSpun = ref(false)
+const isSpinning = ref(false)
+const activeMashIterIndex = ref(-1)
+const activeCategoryKey = ref<string | null>(null)
+const activeOptionIndex = ref<number | null>(null)
+const showResultsModal = ref(false)
+const resultsData = ref<Array<{ category: string; choice: string }>>([])
+let resultsModalTimeout: number | null = null
+const makeChosenMap = () => {
+  const base: Record<string, number | null> = { mash: null }
+  defaultCategories.forEach((cat) => {
+    base[cat.key] = null
+  })
+  return base
+}
+const chosenIndices = ref<Record<string, number | null>>(makeChosenMap())
+const eliminated = ref<Record<string, Set<number>>>(
+  Object.fromEntries(defaultCategories.map((cat) => [cat.key, new Set<number>()]))
+)
 
 // Kick off the marquee animation loop for the intro letters.
 const startLetterCycle = () => {
@@ -57,6 +77,12 @@ const entrySound = createLoopingAudio(ENTRY_SOUND_URL.href, 0.35)
 let audioUnlockCleanup: CleanupFn | null = null
 const musicEnabled = ref(false)
 const categories = ref<Category[]>(defaultCategories.map((cat) => ({ ...cat, options: [...cat.options] })))
+const mashEliminated = ref<Set<number>>(new Set())
+
+const getLabelForKey = (key: string) => {
+  if (key === 'mash') return 'MASH'
+  return categories.value.find((cat) => cat.key === key)?.label ?? key
+}
 
 // Start the intro music; if autoplay is blocked the unlock handler will retry.
 const startEntrySound = async () => {
@@ -106,9 +132,26 @@ const start = async () => {
   started.value = true
 }
 
+const isEliminated = (key: string, idx: number) => eliminated.value[key]?.has(idx) ?? false
+
 // Spin the wheel: pick a number between 5 and 9 and log it.
-const spinWheel = () => {
-  if (!allFilled.value || hasSpun.value) return
+const spinWheel = async () => {
+  if (!allFilled.value || hasSpun.value || isSpinning.value) return
+  isSpinning.value = true
+  activeMashIterIndex.value = -1
+  activeCategoryKey.value = null
+  activeOptionIndex.value = null
+  chosenIndices.value = makeChosenMap()
+  // reset elimination marks
+  Object.values(eliminated.value).forEach((set) => set.clear())
+  mashEliminated.value = new Set()
+  showResultsModal.value = false
+  resultsData.value = []
+  if (resultsModalTimeout !== null) {
+    window.clearTimeout(resultsModalTimeout)
+    resultsModalTimeout = null
+  }
+
   const step = Math.floor(Math.random() * 5) + 5 // 5..9 inclusive
 
   const working = [
@@ -131,15 +174,43 @@ const spinWheel = () => {
   let counter = 0
   let safety = 0
   const maxIterations = flat.length * 1000
+  const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 
   while (canRemove() && safety < maxIterations) {
-    const { ci, oi } = flat[idx]!
+    // skip already removed or finished categories
+    let hops = 0
+    let current = flat[idx]
+    while (
+      current &&
+      hops < flat.length &&
+      (removed[current.ci]?.[current.oi] || (remainingCounts[current.ci] ?? 0) <= 1)
+    ) {
+      idx = (idx + 1) % flat.length
+      current = flat[idx]
+      hops += 1
+    }
+    if (hops >= flat.length || !current) break
+
+    const { ci, oi } = current
+    activeMashIterIndex.value = ci === 0 ? oi : -1
+    activeCategoryKey.value = working[ci]?.key ?? null
+    activeOptionIndex.value = working[ci]?.key === 'mash' ? null : oi
+
+    // step highlight delay
+    await wait(50)
+
     const catRemaining = remainingCounts[ci] ?? 0
     if (!removed[ci]?.[oi] && catRemaining > 1) {
       counter += 1
       if (counter === step) {
         if (removed[ci]) {
           removed[ci][oi] = true
+          const catKey = working[ci]?.key
+          if (catKey && eliminated.value[catKey]) {
+            eliminated.value[catKey].add(oi)
+          } else if (catKey === 'mash') {
+            mashEliminated.value = new Set([...mashEliminated.value, oi])
+          }
         }
         remainingCounts[ci] = Math.max(0, catRemaining - 1)
         counter = 0
@@ -151,11 +222,21 @@ const spinWheel = () => {
 
   const results = working.map((cat, ci) => {
     const remainingIdx = cat.options.findIndex((_, oi) => !removed[ci]?.[oi])
+    chosenIndices.value[cat.key] = remainingIdx >= 0 ? remainingIdx : null
     return { category: cat.key, choice: cat.options[remainingIdx] ?? '' }
   })
+  resultsData.value = results
 
   console.log(`Spin result (step=${step}):`, results)
   hasSpun.value = true
+  activeMashIterIndex.value = -1
+  activeCategoryKey.value = null
+  activeOptionIndex.value = null
+  isSpinning.value = false
+  resultsModalTimeout = window.setTimeout(() => {
+    showResultsModal.value = true
+    resultsModalTimeout = null
+  }, 2000)
 }
 
 // Reset all user-entered options back to blanks.
@@ -187,6 +268,23 @@ onBeforeUnmount(() => {
   stopEntrySound()
   detachAudioUnlock()
 })
+
+const restartGame = () => {
+  hasSpun.value = false
+  isSpinning.value = false
+  activeMashIterIndex.value = -1
+  activeCategoryKey.value = null
+  activeOptionIndex.value = null
+  chosenIndices.value = makeChosenMap()
+  Object.values(eliminated.value).forEach((set) => set.clear())
+  mashEliminated.value = new Set()
+  resultsData.value = []
+  showResultsModal.value = false
+  if (resultsModalTimeout !== null) {
+    window.clearTimeout(resultsModalTimeout)
+    resultsModalTimeout = null
+  }
+}
 </script>
 
 <template>
@@ -196,6 +294,7 @@ onBeforeUnmount(() => {
       class="music-toggle"
       type="button"
       :aria-pressed="musicEnabled"
+      :title="musicEnabled ? 'I discovered how much I hate this sound after 30 secs' : 'Mate, leave this off—you will not like it'"
       @click="toggleMusic"
     >
       {{ musicEnabled ? LABEL_MUSIC_ON : LABEL_MUSIC_OFF }}
@@ -208,7 +307,11 @@ onBeforeUnmount(() => {
             v-for="(letter, idx) in LETTERS"
             :key="letter"
             class="chip"
-            :class="{ 'chip--active': idx === activeLetterIndex }"
+            :class="{
+              'chip--active': idx === activeLetterIndex,
+              'chip--chosen': chosenIndices.mash === idx,
+              'chip--eliminated': mashEliminated.has(idx) && chosenIndices.mash !== idx
+            }"
             :data-testid="`chip-${letter}`"
           >
             {{ letter }}
@@ -238,6 +341,11 @@ onBeforeUnmount(() => {
                 v-for="letter in LETTERS"
                 :key="letter"
                 class="chip chip--inline"
+                :class="{
+                  'chip--active': activeCategoryKey === 'mash' && activeMashIterIndex === LETTERS.indexOf(letter),
+                  'chip--eliminated': mashEliminated.has(LETTERS.indexOf(letter)) && chosenIndices.mash !== LETTERS.indexOf(letter),
+                  'chip--chosen': chosenIndices.mash === LETTERS.indexOf(letter)
+                }"
                 :data-testid="`chip-inline-${letter}`"
               >
                 {{ letter }}
@@ -245,14 +353,20 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </Transition>
-        <p class="form-lead">{{ LABEL_FORM_LEAD }}</p>
+        <p v-if="!hasSpun && !isSpinning" class="form-lead">{{ LABEL_FORM_LEAD }}</p>
         <div class="form-actions">
-          <button class="ghost-button" type="button" @click="clearOptions">
+          <button
+            v-if="!hasSpun && !isSpinning"
+            class="ghost-button"
+            type="button"
+            @click="clearOptions"
+          >
             {{ LABEL_CLEAR }}
           </button>
           <button
             class="ghost-button ghost-button--primary"
             type="button"
+            v-if="!hasSpun && !isSpinning"
             :disabled="!allFilled || hasSpun"
             @click="spinWheel"
           >
@@ -260,13 +374,26 @@ onBeforeUnmount(() => {
           </button>
         </div>
         <form class="prompt-grid">
-          <div v-for="cat in categories" :key="cat.key" class="prompt">
+          <div
+            v-for="cat in categories"
+            :key="cat.key"
+            class="prompt"
+          >
             <label class="prompt__label" :for="`${cat.key}-0`">
               <span class="prompt__icon" aria-hidden="true">{{ categoryIcons[cat.key] ?? '✏️' }}</span>
               {{ cat.label }}
             </label>
             <ul class="prompt__options" role="list">
-              <li v-for="(option, idx) in cat.options" :key="idx" class="prompt__row">
+              <li
+                v-for="(option, idx) in cat.options"
+                :key="idx"
+                class="prompt__row"
+                :class="{
+                  'prompt__row--eliminated': isEliminated(cat.key, idx),
+                  'prompt__row--active': activeCategoryKey === cat.key && activeOptionIndex === idx,
+                  'prompt__row--chosen': chosenIndices[cat.key] === idx
+                }"
+              >
                 <span class="prompt__dot" aria-hidden="true">•</span>
                 <input
                   :id="`${cat.key}-${idx}`"
@@ -274,12 +401,30 @@ onBeforeUnmount(() => {
                   type="text"
                   maxlength="50"
                   class="prompt__input prompt__input--underline"
+                  :class="{ 'prompt__input--chosen': chosenIndices[cat.key] === idx }"
                 />
               </li>
             </ul>
           </div>
         </form>
       </section>
+    </Transition>
+
+    <Transition name="fade">
+      <div v-if="showResultsModal" class="results-overlay" role="dialog" aria-modal="true">
+        <div class="results-card">
+          <div class="results-celebrate" aria-hidden="true">🎈🎉{{ LABEL_RESULTS_TITLE }}🎉🎊</div>
+          <ul class="results-list" role="list">
+            <li v-for="result in resultsData" :key="result.category" class="results-item">
+              <span class="results-label">{{ getLabelForKey(result.category) }}</span>
+              <span class="results-choice">{{ result.choice || '—' }}</span>
+            </li>
+          </ul>
+          <button class="ghost-button ghost-button--primary results-action" type="button" @click="restartGame">
+            {{ LABEL_RESULTS_ACTION }}
+          </button>
+        </div>
+      </div>
     </Transition>
   </main>
 </template>
