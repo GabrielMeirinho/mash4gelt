@@ -2,6 +2,8 @@
 
 // Order of the marquee letters that animate on the intro screen.
 export const LETTERS = ['M', 'A', 'S', 'H'] as const
+export const MASH_KEY = 'mash' as const
+export const MASH_LABEL = 'MASH'
 
 // Interval (ms) between each letter lighting up.
 export const LETTER_INTERVAL_MS = 500
@@ -35,6 +37,17 @@ export const DRUM_ROLL_URL = new URL('./sounds/drum_roll_trimmed.mp3', import.me
 export const CHEER_URL = new URL('./sounds/short_crowd_cheer.mp3', import.meta.url)
 // 8-bit loop that plays during the elimination round.
 export const LOOP_MUSIC_URL = new URL('./sounds/8bit_music.mp3', import.meta.url)
+export const LOOP_MUSIC_VOLUME = 0.6
+// Fun elimination stingers to play when an option is crossed out.
+export const ELIMINATION_SOUNDS = [
+  new URL('./sounds/elimination/car_accident.mp3', import.meta.url),
+  new URL('./sounds/elimination/duck_quack.mp3', import.meta.url),
+  new URL('./sounds/elimination/im_shocked.mp3', import.meta.url),
+  new URL('./sounds/elimination/laugh_high.mp3', import.meta.url),
+  new URL('./sounds/elimination/rubber_band.mp3', import.meta.url),
+  new URL('./sounds/elimination/short-fart-185140.mp3', import.meta.url),
+  new URL('./sounds/elimination/squeaky_toy_1.mp3', import.meta.url)
+] as const
 
 // UI copy
 export const LABEL_MUSIC_ON = '🔊 Music on'
@@ -45,6 +58,8 @@ export const LABEL_CLEAR = 'Clear'
 export const LABEL_SPIN_PLACEHOLDER = 'Spin wheel of luck!'
 export const LABEL_RESULTS_TITLE = 'Your MASH fate'
 export const LABEL_RESULTS_ACTION = 'Start again'
+export const HERO_TAGLINE =
+  'Plan your future: find your home, your love, your city, your ride, and your paycheck—one silly spin at a time.'
 
 // Static MASH housing options (not user-editable).
 export const MASH_OPTIONS = ['Mansion', 'Apartment', 'Shack', 'House'] as const

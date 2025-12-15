@@ -56,6 +56,40 @@ body {
   gap: clamp(0.75rem, 5vw, 2.2rem);
 }
 
+.hero .chip {
+  animation: mash-bop 1.9s ease-in-out infinite;
+}
+.hero .chip:nth-child(1) { animation-delay: 0s; }
+.hero .chip:nth-child(2) { animation-delay: 0.12s; }
+.hero .chip:nth-child(3) { animation-delay: 0.24s; }
+.hero .chip:nth-child(4) { animation-delay: 0.36s; }
+
+.hero-tagline {
+  margin: -0.25rem auto 1.5rem;
+  max-width: 760px;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #f472b6, #f97316, #facc15, #22c55e, #0ea5e9, #a855f7);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: rainbow-shift 6s linear infinite;
+}
+
+@keyframes rainbow-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes mash-bop {
+  0%, 100% { transform: translateY(0) rotate(var(--chip-tilt)) translateY(var(--chip-shift)); }
+  25% { transform: translateY(-6px) rotate(var(--chip-tilt)) translateY(var(--chip-shift)); }
+  50% { transform: translateY(2px) rotate(var(--chip-tilt)) translateY(var(--chip-shift)); }
+  75% { transform: translateY(-4px) rotate(var(--chip-tilt)) translateY(var(--chip-shift)); }
+}
+
 .form-title {
   display: grid;
   place-items: center;
@@ -301,8 +335,11 @@ body {
 }
 
 .prompt__row--active {
-  background: linear-gradient(90deg, rgba(255, 231, 166, 0.25), transparent);
-  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255, 208, 122, 0.55), rgba(255, 231, 166, 0.2));
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 2px rgba(255, 193, 7, 0.35),
+    0 8px 18px rgba(0, 0, 0, 0.12);
 }
 
 .prompt__row--chosen {

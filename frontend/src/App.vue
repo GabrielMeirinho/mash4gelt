@@ -14,6 +14,11 @@ import {
   DRUM_ROLL_URL,
   CHEER_URL,
   LOOP_MUSIC_URL,
+  LOOP_MUSIC_VOLUME,
+  ELIMINATION_SOUNDS,
+  MASH_KEY,
+  MASH_LABEL,
+  HERO_TAGLINE,
   MASH_OPTIONS,
   LETTERS,
   LETTER_INTERVAL_MS,
@@ -53,7 +58,8 @@ const drumRollAudio = new Audio(DRUM_ROLL_URL.href)
 const cheerAudio = new Audio(CHEER_URL.href)
 const loopMusicAudio = new Audio(LOOP_MUSIC_URL.href)
 loopMusicAudio.loop = true
-loopMusicAudio.volume = 0.6
+loopMusicAudio.volume = LOOP_MUSIC_VOLUME
+const eliminationSoundPool = ELIMINATION_SOUNDS.map((u) => u.href)
 const makeChosenMap = () => {
   const base: Record<string, number | null> = { mash: null }
   defaultCategories.forEach((cat) => {
@@ -93,7 +99,7 @@ const categories = ref<Category[]>(defaultCategories.map((cat) => ({ ...cat, opt
 const mashEliminated = ref<Set<number>>(new Set())
 
 const getLabelForKey = (key: string) => {
-  if (key === 'mash') return 'MASH'
+  if (key === MASH_KEY) return MASH_LABEL
   return categories.value.find((cat) => cat.key === key)?.label ?? key
 }
 
@@ -184,19 +190,27 @@ const revealStepOverlay = async (step: number) => {
 const startLoopMusic = async () => {
   loopMusicAudio.pause()
   loopMusicAudio.currentTime = 0
-  loopMusicAudio.volume = 0.6
+  loopMusicAudio.volume = LOOP_MUSIC_VOLUME
   loopMusicAudio.muted = false
   loopMusicAudio.playbackRate = 1
   try {
     await loopMusicAudio.play()
   } catch {
-    console.log("auto play issues detected!")
+    console.log('auto play issues detected!')
   }
 }
 
 const stopLoopMusic = () => {
   loopMusicAudio.pause()
   loopMusicAudio.currentTime = 0
+}
+
+const playEliminationSound = () => {
+  if (!eliminationSoundPool.length) return
+  const idx = Math.floor(Math.random() * eliminationSoundPool.length)
+  const audio = new Audio(eliminationSoundPool[idx] ?? eliminationSoundPool[0])
+  audio.volume = 0.85
+  void audio.play().catch(() => {})
 }
 
 
@@ -213,13 +227,17 @@ const isEliminated = (key: string, idx: number) => eliminated.value[key]?.has(id
 
 // Spin the wheel: pick a number between 5 and 9 and log it.
 const spinWheel = async () => {
+  // Bail out if form not ready or a spin already ran/is running.
   if (!allFilled.value || hasSpun.value || isSpinning.value) return
+  // Mark busy and give a short UX pause.
   isSpinning.value = true
   await sleep(1000)
+  // Stop the intro music and hide its toggle during the spin.
   if (musicEnabled.value) {
     musicEnabled.value = false
     stopEntrySound()
   }
+  // Reset transient UI state.
   activeMashIterIndex.value = -1
   activeCategoryKey.value = null
   activeOptionIndex.value = null
@@ -234,6 +252,7 @@ const spinWheel = async () => {
     resultsModalTimeout = null
   }
 
+  // Choose a step (5..9) avoiding the immediately previous one.
   const pickStep = () => {
     const pool = [5, 6, 7, 8, 9].filter((n) => n !== lastStep.value)
     if (!pool.length) {
@@ -245,18 +264,20 @@ const spinWheel = async () => {
 
   const step = pickStep()
   lastStep.value = step
+  // Play drum roll + cheer overlay, then start loop music with a 2s lead-in.
   await revealStepOverlay(step)
   await startLoopMusic()
   await sleep(2000)
 
   const working = [
-    { key: 'mash', options: [...MASH_OPTIONS] },
+    { key: MASH_KEY, options: [...MASH_OPTIONS] },
     ...categories.value.map((cat) => ({
     key: cat.key,
     options: [...cat.options]
   }))
   ]
 
+  // Track removals and a flattened list to iterate over.
   const removed: boolean[][] = working.map((cat) => cat.options.map(() => false))
   const remainingCounts = working.map((cat) => cat.options.length)
   const flat: Array<{ ci: number; oi: number }> = working.flatMap((cat, ci) =>
@@ -272,7 +293,7 @@ const spinWheel = async () => {
   const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 
   while (canRemove() && safety < maxIterations) {
-    // skip already removed or finished categories
+    // Skip already removed slots or categories that are down to 1 item.
     let hops = 0
     let current = flat[idx]
     while (
@@ -286,14 +307,16 @@ const spinWheel = async () => {
     }
     if (hops >= flat.length || !current) break
 
+    // Update UI highlights for current category/option.
     const { ci, oi } = current
     activeMashIterIndex.value = ci === 0 ? oi : -1
     activeCategoryKey.value = working[ci]?.key ?? null
-    activeOptionIndex.value = working[ci]?.key === 'mash' ? null : oi
+    activeOptionIndex.value = working[ci]?.key === MASH_KEY ? null : oi
 
-    // step highlight delay, I will leave like this, otherwise it will be TOOOO slow. Also I can change this while debug to make it fast during tests
-    await wait(100)
+    // Small delay between hops (tweakable for debugging speed).
+    await wait(600)
 
+    // Only remove if category still has more than one item.
     const catRemaining = remainingCounts[ci] ?? 0
     if (!removed[ci]?.[oi] && catRemaining > 1) {
       counter += 1
@@ -303,12 +326,14 @@ const spinWheel = async () => {
           const catKey = working[ci]?.key
           if (catKey && eliminated.value[catKey]) {
             eliminated.value[catKey].add(oi)
-          } else if (catKey === 'mash') {
+          } else if (catKey === MASH_KEY) {
             mashEliminated.value = new Set([...mashEliminated.value, oi])
           }
           if (catKey) {
+            // Play a stinger, flash the item, pause briefly.
+            playEliminationSound()
             flashRemoval.value = { key: catKey, idx: oi }
-            await wait(1400)
+            await wait(2000)
             flashRemoval.value = null
           }
         }
@@ -320,6 +345,7 @@ const spinWheel = async () => {
     safety += 1
   }
 
+  // Record the survivor in each category and surface it in the results modal.
   const results = working.map((cat, ci) => {
     const remainingIdx = cat.options.findIndex((_, oi) => !removed[ci]?.[oi])
     chosenIndices.value[cat.key] = remainingIdx >= 0 ? remainingIdx : null
@@ -334,6 +360,7 @@ const spinWheel = async () => {
   activeOptionIndex.value = null
   isSpinning.value = false
   stopLoopMusic()
+  // Show results after a brief delay with a cheer.
   resultsModalTimeout = window.setTimeout(() => {
     cheerAudio.pause()
     cheerAudio.currentTime = 0
@@ -436,6 +463,12 @@ const restartGame = () => {
           </span>
         </div>
       </header>
+    </Transition>
+
+    <Transition name="fade">
+      <p v-if="!started" class="hero-tagline" aria-live="polite">
+        {{ HERO_TAGLINE }}
+      </p>
     </Transition>
 
     <Transition name="fade">
