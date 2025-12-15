@@ -4,7 +4,7 @@
    - Show a “recent 100 outcomes” list (with names) from the last players, even if they didn’t log in.
    - Add a “send to a friend” flow to email the generated outcome.
    - Introduce a “co-op” or dual-session mode so a friend can complete/spin your game.
-   - Themed skins (seasons/holidays) Imagine one for Christmas and another for Halloweed?
+   - Themed skins (seasons/holidays) Imagine one for Christmas and another for Halloween?
    - Custom category creation ( let the players add more categories or add more options 5 or 6 instead of 4)
    - Accessibility-friendly mode (reduced motion/high contrast)
    - And a short tutorial/onboarding hint for first-time players, for example I had no clue how to play this before watch the video.
